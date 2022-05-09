@@ -1,18 +1,17 @@
 package appstoreconnect
 
 import (
+	"compress/gzip"
 	"fmt"
-	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
-	"time"
 
+	"cloud.google.com/go/civil"
 	errortools "github.com/leapforce-libraries/go_errortools"
 	go_http "github.com/leapforce-libraries/go_http"
+	"github.com/xdg-go/strum"
 )
-
-type SalesReport struct {
-}
 
 type SalesReportFrequency string
 
@@ -23,43 +22,49 @@ const (
 	SalesReportFrequencyYearly  SalesReportFrequency = "YEARLY"
 )
 
-type SalesReportSubType string
+type salesReportSubType string
 
 const (
-	SalesReportSubTypeSummary  SalesReportSubType = "SUMMARY"
-	SalesReportSubTypeDetailed SalesReportSubType = "DETAILED"
+	salesReportSubTypeSummary  salesReportSubType = "SUMMARY"
+	salesReportSubTypeDetailed salesReportSubType = "DETAILED"
 )
 
-type SalesReportType string
+type salesReportType string
 
 const (
-	SalesReportTypeSales                           SalesReportType = "SALES"
-	SalesReportTypePreOrder                        SalesReportType = "PRE_ORDER"
-	SalesReportTypeNewsstand                       SalesReportType = "NEWSSTAND"
-	SalesReportTypeSubscription                    SalesReportType = "SUBSCRIPTION"
-	SalesReportTypeSubscriptionEvent               SalesReportType = "SUBSCRIPTION_EVENT"
-	SalesReportTypeSubscriber                      SalesReportType = "SUBSCRIBER"
-	SalesReportTypeSubscriptionOfferCodeRedemption SalesReportType = "SUBSCRIPTION_OFFER_CODE_REDEMPTION"
+	salesReportTypeSales                           salesReportType = "SALES"
+	salesReportTypePreOrder                        salesReportType = "PRE_ORDER"
+	salesReportTypeNewsstand                       salesReportType = "NEWSSTAND"
+	salesReportTypeSubscription                    salesReportType = "SUBSCRIPTION"
+	salesReportTypeSubscriptionEvent               salesReportType = "SUBSCRIPTION_EVENT"
+	salesReportTypeSubscriber                      salesReportType = "SUBSCRIBER"
+	salesReportTypeSubscriptionOfferCodeRedemption salesReportType = "SUBSCRIPTION_OFFER_CODE_REDEMPTION"
 )
 
-type GetSalesReportConfig struct {
+type getSalesReportConfig struct {
 	Frequency     SalesReportFrequency
-	ReportDate    *time.Time
-	ReportSubType SalesReportSubType
-	ReportType    SalesReportType
+	ReportDate    *civil.Date
+	ReportSubType salesReportSubType
+	ReportType    salesReportType
 	VendorNumber  string
 	Version       *string
 }
 
-func (service *Service) GetSalesReport(config *GetSalesReportConfig) (*[]SalesReport, *errortools.Error) {
+func (service *Service) getSalesReport(config *getSalesReportConfig, model interface{}) *errortools.Error {
 	if config == nil {
-		return nil, errortools.ErrorMessage("Config must not be nil")
+		return errortools.ErrorMessage("Config must not be nil")
 	}
 
 	params := url.Values{}
 	params.Set("filter[frequency]", fmt.Sprintf("%v", config.Frequency))
 	if config.ReportDate != nil {
-		reportDate := config.ReportDate.Format("2006-01-02")
+		reportDate := config.ReportDate.String()
+		if config.Frequency == SalesReportFrequencyMonthly {
+			reportDate = reportDate[:7]
+		} else if config.Frequency == SalesReportFrequencyYearly {
+			reportDate = reportDate[:4]
+		}
+		fmt.Println(reportDate)
 		params.Set("filter[reportDate]", reportDate)
 	}
 	params.Set("filter[reportSubType]", fmt.Sprintf("%v", config.ReportSubType))
@@ -79,17 +84,34 @@ func (service *Service) GetSalesReport(config *GetSalesReportConfig) (*[]SalesRe
 	}
 	_, response, e := service.httpRequest(&requestConfig)
 	if e != nil {
-		return nil, e
+		return e
 	}
 
-	defer response.Body.Close()
+	buf := response.Body
 
-	b, err := ioutil.ReadAll(response.Body)
+	reader, err := gzip.NewReader(buf)
 	if err != nil {
-		return nil, errortools.ErrorMessage(err)
+		log.Fatal(errortools.ErrorMessage(err))
 	}
 
-	fmt.Println(b)
+	//for {
+	//	reader.Multistream(false)
 
-	return nil, nil
+	d := strum.NewDecoder(reader).WithSplitOn("\t")
+	// skip first row
+	_, _ = d.Tokens()
+
+	err = d.DecodeAll(model)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//	break
+	//}
+
+	if err := reader.Close(); err != nil {
+		return errortools.ErrorMessage(err)
+	}
+
+	return nil
 }

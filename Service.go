@@ -56,7 +56,10 @@ func NewService(serviceConfig *ServiceConfig) (*Service, *errortools.Error) {
 
 func (service *Service) httpRequest(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	// add authentication header
-	header := http.Header{}
+	header := (*requestConfig).NonDefaultHeaders
+	if header == nil {
+		header = &http.Header{}
+	}
 
 	token, e := service.getToken()
 	if e != nil {
@@ -64,7 +67,7 @@ func (service *Service) httpRequest(requestConfig *go_http.RequestConfig) (*http
 	}
 
 	header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	(*requestConfig).NonDefaultHeaders = &header
+	(*requestConfig).NonDefaultHeaders = header
 
 	errorResponse := ErrorResponse{}
 	requestConfig.ErrorModel = &errorResponse

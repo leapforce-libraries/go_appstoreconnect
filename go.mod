@@ -3,17 +3,19 @@ module github.com/leapforce-libraries/go_appstoreconnect
 go 1.18
 
 require (
+	cloud.google.com/go v0.100.2
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/leapforce-libraries/go_errortools v0.0.0-20211119145736-7b9b61c20618
 	github.com/leapforce-libraries/go_http v0.0.0-20220406191830-0235c3965bb8
+	github.com/xdg-go/strum v0.2.0
 )
 
 require (
-	cloud.google.com/go v0.100.2 // indirect
 	cloud.google.com/go/bigquery v1.28.0 // indirect
 	cloud.google.com/go/compute v1.2.0 // indirect
 	cloud.google.com/go/iam v0.1.1 // indirect
 	cloud.google.com/go/storage v1.21.0 // indirect
+	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de // indirect
 	github.com/getsentry/sentry-go v0.9.0 // indirect
 	github.com/gofrs/uuid v4.2.0+incompatible // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
