@@ -64,7 +64,6 @@ func (service *Service) getSalesReport(config *getSalesReportConfig, model inter
 		} else if config.Frequency == SalesReportFrequencyYearly {
 			reportDate = reportDate[:4]
 		}
-		fmt.Println(reportDate)
 		params.Set("filter[reportDate]", reportDate)
 	}
 	params.Set("filter[reportSubType]", fmt.Sprintf("%v", config.ReportSubType))
