@@ -23,12 +23,13 @@ type ServiceConfig struct {
 }
 
 type Service struct {
-	keyId       string
-	privateKey  string
-	audience    string
-	issuerId    string
-	httpService *go_http.Service
-	jwtToken    *JwtToken
+	keyId         string
+	privateKey    string
+	audience      string
+	issuerId      string
+	httpService   *go_http.Service
+	jwtToken      *JwtToken
+	errorResponse *ErrorResponse
 }
 
 // methods
@@ -69,14 +70,14 @@ func (service *Service) httpRequest(requestConfig *go_http.RequestConfig) (*http
 	header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	(*requestConfig).NonDefaultHeaders = header
 
-	errorResponse := ErrorResponse{}
-	requestConfig.ErrorModel = &errorResponse
+	service.errorResponse = &ErrorResponse{}
+	requestConfig.ErrorModel = service.errorResponse
 
 	request, response, e := service.httpService.HttpRequest(requestConfig)
 	if e != nil {
-		if len(errorResponse.Errors) > 0 {
+		if len(service.errorResponse.Errors) > 0 {
 			titles := []string{}
-			for _, err := range errorResponse.Errors {
+			for _, err := range service.errorResponse.Errors {
 				titles = append(titles, err.Title)
 			}
 
@@ -105,4 +106,8 @@ func (service *Service) ApiCallCount() int64 {
 
 func (service *Service) ApiReset() {
 	service.httpService.ResetRequestCount()
+}
+
+func (service *Service) ErrorResponse() *ErrorResponse {
+	return service.errorResponse
 }
